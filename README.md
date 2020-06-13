@@ -1,20 +1,20 @@
-# mosaicjs
+# photosaic
 
-Create beautiful mosaics that build a final image from an original you specify, and are made up of many small/"sub"-images you also provide.
+Create beautiful mosaics of an image from an original you specify, and are made up of many small images/photos you also provide!
 
 ## Install
 
 ```sh
-$ npm install -s mosaicjs
+$ npm install -s photosaic
 ```
 
 ## Usage
 
 ```js
 import fs from 'fs'
-import Mosaic from 'mosaicjs'
+import Photosaic from 'photosaic'
 
-const mosaic = Mosaic(`./targetMosaicImg.png`, [
+const mosaic = Photosaic(`./targetMosaicImg.png`, [
   `./subImg1.png`,
   `./subImg2.png`,
   `./subImg2.png`,

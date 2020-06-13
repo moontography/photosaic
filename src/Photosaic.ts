@@ -5,18 +5,15 @@ import { bufferToStream, streamToBuffer } from './Utilities'
 
 const DEFAULT_WIDTH: number = 400
 
-// https://github.com/lovell/sharp/issues/1849
-sharp.cache(false)
-
-export default function Mosaic(
-  sourceImage: MosaicImage,
-  subImages: MosaicImage[],
+export default function Photosaic(
+  sourceImage: PhotosaicImage,
+  subImages: PhotosaicImage[],
   {
     gridNum = 10,
     intensity = 0.5,
     outputWidth = DEFAULT_WIDTH,
-  }: IMosaicOptions = {}
-): IMosaicFactory {
+  }: IPhotosaicOptions = {}
+): IPhotosaicFactory {
   return {
     sourceImage,
     sourceImageSharp: null,
@@ -28,26 +25,26 @@ export default function Mosaic(
     subImageWidth: null,
     subImageHeight: null,
 
-    setSourceImage(source: MosaicImage) {
+    setSourceImage(source: PhotosaicImage) {
       return (this.sourceImage = source)
     },
 
-    setSubImages(subs: MosaicImage[]) {
+    setSubImages(subs: PhotosaicImage[]) {
       return (this.subImages = subs)
     },
 
-    addSubImage(sub: MosaicImage) {
+    addSubImage(sub: PhotosaicImage) {
       this.subImages.push(sub)
       return this.subImages
     },
 
-    imgToStream(img: MosaicImage) {
+    imgToStream(img: PhotosaicImage) {
       if (typeof img === 'string') return fs.createReadStream(img)
       if (img instanceof Buffer) return bufferToStream(img)
       return img
     },
 
-    async imgToBuffer(img: MosaicImage) {
+    async imgToBuffer(img: PhotosaicImage) {
       if (typeof img === 'string') return await fs.promises.readFile(img)
       if (img instanceof Readable) return await streamToBuffer(img)
       return img
@@ -81,7 +78,7 @@ export default function Mosaic(
       this.subImageHeight = Math.floor(newWidth / whRatio)
 
       return (this.subImagesSharp = await Promise.all(
-        this.subImages.map(async (img: MosaicImage) => {
+        this.subImages.map(async (img: PhotosaicImage) => {
           const sh = sharp(await this.imgToBuffer(img))
           return sh.resize({
             width: this.subImageWidth || newWidth,
@@ -144,7 +141,9 @@ export default function Mosaic(
             .clone()
 
           const { r, g, b, a } = await this.getPieceAvgColor(x, y)
-          if (a === 0) continue
+          // If the square is completely transparent, don't insert image here.
+          // TODO: should we have same logic here for all white or black squares?
+          if ((a || 0) < 10) continue
 
           const overlayedSubImg = subImg.composite([
             {
@@ -186,12 +185,12 @@ export default function Mosaic(
 }
 
 /**
- * MosaicImage
+ * PhotosaicImage
  * @string will be a local filepath to the image
  * @Buffer a raw buffer of the image
  * @Readable a read stream containing the data to the image
  **/
-export type MosaicImage = string | Buffer | Readable
+export type PhotosaicImage = string | Buffer | Readable
 
 export interface IColor {
   r: number
@@ -200,27 +199,27 @@ export interface IColor {
   a?: number
 }
 
-export interface IMosaicFactory {
-  sourceImage: MosaicImage
+export interface IPhotosaicFactory {
+  sourceImage: PhotosaicImage
   sourceImageSharp: null | sharp.Sharp
   sourceWidth: null | number
   sourceHeight: null | number
-  subImages: MosaicImage[]
+  subImages: PhotosaicImage[]
   subImagesSharp: null | sharp.Sharp[]
   subImageWidth: null | number
   subImageHeight: null | number
-  setSourceImage(source: MosaicImage): MosaicImage
-  setSubImages(subs: MosaicImage[]): MosaicImage[]
-  addSubImage(sub: MosaicImage): MosaicImage[]
-  imgToStream(img: MosaicImage): Readable
-  imgToBuffer(img: MosaicImage): Promise<Buffer>
+  setSourceImage(source: PhotosaicImage): PhotosaicImage
+  setSubImages(subs: PhotosaicImage[]): PhotosaicImage[]
+  addSubImage(sub: PhotosaicImage): PhotosaicImage[]
+  imgToStream(img: PhotosaicImage): Readable
+  imgToBuffer(img: PhotosaicImage): Promise<Buffer>
   setupSourceImage(): Promise<sharp.Sharp>
   setupSubImages(): Promise<sharp.Sharp[]>
   getPieceAvgColor(x: number, y: number): Promise<IColor>
   build(): Promise<Buffer>
 }
 
-export interface IMosaicOptions {
+export interface IPhotosaicOptions {
   gridNum?: number // number of columns and rows of subimages we'll use to build the mosaic
   intensity?: number // number between 0-1, the intesity that we'll overlay a color on subimages to insert into main image
   outputWidth?: null | number // width in pixels of the output image (DEFAULT: original width)
