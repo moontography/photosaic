@@ -1,0 +1,29 @@
+{
+  "name": "mosaicjs",
+  "version": "0.0.1",
+  "license": "MIT",
+  "description": "Build beautiful mosaic images from input images you provide.",
+  "main": "dist/Mosaic",
+  "scripts": {
+    "build": "gulp build",
+    "postinstall": "npm run build",
+    "test": "NODE_ENV=test mocha --exit --recursive './src/**/*.spec.ts'"
+  },
+  "author": "Lance Whatley",
+  "dependencies": {
+    "gulp": "^4.0.2",
+    "gulp-plumber": "^1.2.1",
+    "gulp-sourcemaps": "^2.6.5",
+    "gulp-typescript": "^6.0.0-alpha.1",
+    "sharp": "^0.25.4",
+    "typescript": "^3.9.2"
+  },
+  "devDependencies": {
+    "@babel/register": "^7.9.0",
+    "@types/minimist": "^1.2.0",
+    "@types/node": "^14.0.1",
+    "@types/sharp": "^0.25.0",
+    "minimist": "^1.2.5",
+    "mocha": "^7.1.2"
+  }
+}

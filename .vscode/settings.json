@@ -1,0 +1,10 @@
+{
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true,
+  "editor.tabSize": 2,
+  "editor.wordWrap": "off",
+  "editor.renderWhitespace": "all",
+  "prettier.semi": false,
+  "prettier.singleQuote": true,
+  "prettier.vueIndentScriptAndStyle": true
+}
