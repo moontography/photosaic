@@ -8,28 +8,39 @@ const input =
   argv.i ||
   argv.input ||
   path.join(__dirname, '..', '..', 'src', 'tasks', 'test.png')
-const output =
-  argv.o ||
-  argv.output ||
+const singleSubImg =
+  argv.s ||
+  argv.sub ||
   path.join(__dirname, '..', '..', 'src', 'tasks', 'test.png')
+const subImgDir = argv.dir
 const gridNum = argv.g || argv.grid || 10
 const outputWidth = argv.w || argv.width || 500
 
 ;(async function createPhotosaic() {
   try {
-    const photosaic = Photosaic(
-      input,
-      output instanceof Array ? output : [output],
-      {
-        gridNum,
-        outputWidth,
-      }
-    )
+    let subImages =
+      singleSubImg instanceof Array ? singleSubImg : singleSubImg.split(',')
+    if (subImgDir) {
+      const files = await fs.promises.readdir(subImgDir)
+      subImages = files.map((f) => `${subImgDir}/${f}`)
+    }
+
+    const photosaic = Photosaic(input, subImages, {
+      gridNum,
+      outputWidth,
+    })
+
+    photosaic.emitter.on('processing', (iteration) => {
+      const perc = (iteration / gridNum ** 2) * 100
+      if (perc % 1 === 0) process.stdout.write(`.`)
+    })
+
     const newImgBuffer = await photosaic.build()
     const dest = path.join(path.dirname(input), `${Date.now()}.png`)
-    await fs.promises.writeFile(dest, newImgBuffer)
 
-    console.log(`successfully created photosaic located at ${dest}`)
+    await fs.promises.writeFile(dest, newImgBuffer)
+    process.stdout.write(`\n`)
+    console.log(dest)
   } catch (err) {
     console.error(`error creating photosaic`, err.message, err.stack)
   }

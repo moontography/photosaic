@@ -1,5 +1,6 @@
 import fs from 'fs'
 import sharp from 'sharp'
+import { EventEmitter } from 'events'
 import { Readable } from 'stream'
 import { bufferToStream, streamToBuffer } from './Utilities'
 
@@ -15,15 +16,16 @@ export default function Photosaic(
   }: IPhotosaicOptions = {}
 ): IPhotosaicFactory {
   return {
+    emitter: new EventEmitter(),
     sourceImage,
-    sourceImageSharp: null,
-    sourceWidth: null,
-    sourceHeight: null,
+    sourceImageSharp: sharp(),
+    sourceWidth: 0,
+    sourceHeight: 0,
 
     subImages,
-    subImagesSharp: null,
-    subImageWidth: null,
-    subImageHeight: null,
+    subImagesSharp: [sharp()],
+    subImageWidth: 0,
+    subImageHeight: 0,
 
     setSourceImage(source: PhotosaicImage) {
       return (this.sourceImage = source)
@@ -77,24 +79,23 @@ export default function Photosaic(
       this.subImageWidth = Math.floor(newWidth)
       this.subImageHeight = Math.floor(newWidth / whRatio)
 
+      // resetting sourceWidth and sourceHeight to be gridNum * subImgWidth etc.
+      // because when we Math.floor() above it might be several pixels too small
+      this.sourceWidth = this.subImageWidth * gridNum
+      this.sourceHeight = this.subImageHeight * gridNum
+
       return (this.subImagesSharp = await Promise.all(
         this.subImages.map(async (img: PhotosaicImage) => {
           const sh = sharp(await this.imgToBuffer(img))
           return sh.resize({
-            width: this.subImageWidth || newWidth,
-            height: this.subImageHeight || newWidth / whRatio,
+            width: this.subImageWidth,
+            height: this.subImageHeight,
           })
         })
       ))
     },
 
     async getPieceAvgColor(x: number, y: number) {
-      if (!this.sourceImageSharp)
-        throw new Error(`source image was not provided correctly`)
-
-      if (!(this.subImageWidth && this.subImageHeight))
-        throw new Error(`no subimage image dimensions`)
-
       const piece = await this.sourceImageSharp
         .clone()
         .extract({
@@ -120,75 +121,77 @@ export default function Photosaic(
       await this.setupSourceImage()
       await this.setupSubImages()
 
-      if (this.sourceImageSharp == null)
-        throw new Error(`source image was not provided correctly`)
-
-      if (!this.subImagesSharp)
-        throw new Error(`no subimages to build mosaic from`)
-
-      if (!(this.subImageWidth && this.subImageHeight))
-        throw new Error(`no subimage image dimensions`)
-
-      let compositeSubImgObjects = []
+      let compositeSubImgObjects: object[] = []
       let iteration = 0
+      let subImagesCache = this.subImagesSharp.slice(0)
+
+      // we're going to execute each row in series, but all columns
+      // in each row in series to try and improve speed
       for (let x = 0; x < gridNum; x++) {
-        for (let y = 0; y < gridNum; y++) {
-          const randImgInd = Math.floor(
-            this.subImagesSharp.length * Math.random()
-          )
-          const subImg = this.subImagesSharp
-            .slice(randImgInd, randImgInd + 1)[0]
-            .clone()
+        await Promise.all(
+          new Array(gridNum).fill(0).map(async (_, y) => {
+            const { r, g, b, a } = await this.getPieceAvgColor(x, y)
+            // If the square is completely transparent, don't insert image here.
+            // TODO: should we have same logic here for all white or black squares?
+            if ((a || 0) < 10) return
 
-          const { r, g, b, a } = await this.getPieceAvgColor(x, y)
-          // If the square is completely transparent, don't insert image here.
-          // TODO: should we have same logic here for all white or black squares?
-          if ((a || 0) < 10) continue
+            if (subImagesCache.length === 0)
+              subImagesCache = this.subImagesSharp.slice(0)
 
-          const overlayedSubImg = subImg.composite([
-            {
-              input: {
-                create: {
-                  width: this.subImageWidth,
-                  height: this.subImageHeight,
-                  channels: 4,
-                  background: { r, g, b, alpha: intensity },
+            const randImgInd = Math.floor(subImagesCache.length * Math.random())
+            const subImg = subImagesCache.splice(randImgInd, 1)[0].clone()
+
+            const overlayedSubImg = subImg.composite([
+              {
+                input: {
+                  create: {
+                    width: this.subImageWidth,
+                    height: this.subImageHeight,
+                    channels: 4,
+                    background: { r, g, b, alpha: intensity },
+                  },
                 },
               },
-            },
-          ])
+            ])
 
-          compositeSubImgObjects.push({
-            input: await overlayedSubImg.toBuffer(),
-            left: x * this.subImageWidth,
-            top: y * this.subImageHeight,
+            compositeSubImgObjects.push({
+              input: await overlayedSubImg.toBuffer(),
+              left: x * this.subImageWidth,
+              top: y * this.subImageHeight,
+            })
+
+            iteration++
+            this.emitter.emit(`processing`, iteration)
           })
+        )
 
-          // TODO: when the following are resolved remove this
-          // https://github.com/lovell/sharp/issues/1708
-          // https://github.com/lovell/sharp/issues/1626
-          iteration++
-          if (iteration > 0 && iteration % 100 === 0) {
-            this.sourceImageSharp = sharp(
-              await this.sourceImageSharp
-                .composite(compositeSubImgObjects)
-                .toBuffer()
-            )
-            compositeSubImgObjects = []
-          }
+        // TODO: when the following are resolved remove this
+        // https://github.com/lovell/sharp/issues/1708
+        // https://github.com/lovell/sharp/issues/1626
+        if (compositeSubImgObjects.length >= 80) {
+          this.sourceImageSharp = sharp(
+            await this.sourceImageSharp
+              .composite(compositeSubImgObjects)
+              .toBuffer()
+          )
+          compositeSubImgObjects = []
         }
       }
 
-      return this.sourceImageSharp.composite(compositeSubImgObjects).toBuffer()
+      const buffer = await this.sourceImageSharp
+        .composite(compositeSubImgObjects)
+        .toBuffer()
+      this.emitter.emit(`complete`, buffer)
+      return buffer
     },
   }
 }
 
 /**
- * PhotosaicImage
- * @string will be a local filepath to the image
- * @Buffer a raw buffer of the image
- * @Readable a read stream containing the data to the image
+ * @PhotosaicImage
+ * "string": local filepath to the image
+ * "Buffer": raw buffer of the image
+ * "Readable": readable stream of image that can be piped to writable stream
  **/
 export type PhotosaicImage = string | Buffer | Readable
 
@@ -196,18 +199,19 @@ export interface IColor {
   r: number
   g: number
   b: number
-  a?: number
+  a: number
 }
 
 export interface IPhotosaicFactory {
+  emitter: EventEmitter
   sourceImage: PhotosaicImage
-  sourceImageSharp: null | sharp.Sharp
-  sourceWidth: null | number
-  sourceHeight: null | number
+  sourceImageSharp: sharp.Sharp
+  sourceWidth: number
+  sourceHeight: number
   subImages: PhotosaicImage[]
-  subImagesSharp: null | sharp.Sharp[]
-  subImageWidth: null | number
-  subImageHeight: null | number
+  subImagesSharp: sharp.Sharp[]
+  subImageWidth: number
+  subImageHeight: number
   setSourceImage(source: PhotosaicImage): PhotosaicImage
   setSubImages(subs: PhotosaicImage[]): PhotosaicImage[]
   addSubImage(sub: PhotosaicImage): PhotosaicImage[]
