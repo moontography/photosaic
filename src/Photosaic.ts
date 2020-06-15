@@ -125,11 +125,11 @@ export default function Photosaic(
       let iteration = 0
       let subImagesCache = this.subImagesSharp.slice(0)
 
-      // we're going to execute each row in series, but all columns
-      // in each row in series to try and improve speed
-      for (let x = 0; x < gridNum; x++) {
+      // we're going to execute each column in series, but all rows
+      // in each column in parallel to try and improve speed
+      for (let y = 0; y < gridNum; y++) {
         await Promise.all(
-          new Array(gridNum).fill(0).map(async (_, y) => {
+          new Array(gridNum).fill(0).map(async (_, x) => {
             const { r, g, b, a } = await this.getPieceAvgColor(x, y)
             // If the square is completely transparent, don't insert image here.
             // TODO: should we have same logic here for all white or black squares?

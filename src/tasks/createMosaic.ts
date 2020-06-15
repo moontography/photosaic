@@ -4,25 +4,21 @@ import minimist from 'minimist'
 import Photosaic from '../Photosaic'
 
 const argv = minimist(process.argv.slice(2))
-const input =
-  argv.i ||
-  argv.input ||
-  path.join(__dirname, '..', '..', 'src', 'tasks', 'test.png')
-const singleSubImg =
-  argv.s ||
-  argv.sub ||
-  path.join(__dirname, '..', '..', 'src', 'tasks', 'test.png')
+const input = argv.i || argv.input
+const singleSubImg = argv.s || argv.sub
 const subImgDir = argv.dir
 const gridNum = argv.g || argv.grid || 10
 const outputWidth = argv.w || argv.width || 500
 
 ;(async function createPhotosaic() {
   try {
-    let subImages =
-      singleSubImg instanceof Array ? singleSubImg : singleSubImg.split(',')
+    let subImages
     if (subImgDir) {
       const files = await fs.promises.readdir(subImgDir)
       subImages = files.map((f) => `${subImgDir}/${f}`)
+    } else {
+      subImages =
+        singleSubImg instanceof Array ? singleSubImg : singleSubImg.split(',')
     }
 
     const photosaic = Photosaic(input, subImages, {
