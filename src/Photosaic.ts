@@ -130,6 +130,9 @@ export default function Photosaic(
       for (let y = 0; y < gridNum; y++) {
         await Promise.all(
           new Array(gridNum).fill(0).map(async (_, x) => {
+            iteration++
+            this.emitter.emit(`processing`, iteration)
+
             const { r, g, b, a } = await this.getPieceAvgColor(x, y)
             // If the square is completely transparent, don't insert image here.
             // TODO: should we have same logic here for all white or black squares?
@@ -159,9 +162,6 @@ export default function Photosaic(
               left: x * this.subImageWidth,
               top: y * this.subImageHeight,
             })
-
-            iteration++
-            this.emitter.emit(`processing`, iteration)
           })
         )
 

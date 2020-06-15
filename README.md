@@ -65,12 +65,12 @@ There will be a total of `gridNum^2` iterations processed.
 ```js
 const photosaic = Photosaic(source, subImgs, opts)
 photosaic.emitter.on('processing', (iteration) => {
-  console.log(`Processed ${iteration} subImages for the mosaic`)
+  console.log(`Currently processing '${iteration}' subImage for the mosaic`)
 })
 await photosaic.build()
 
-// Processed 1 subImages for the mosaic
-// Processed 2 subImages for the mosaic
-// Processed 3 subImages for the mosaic
+// Currently processing '1' subImage for the mosaic
+// Currently processing '2' subImage for the mosaic
+// Currently processing '3' subImage for the mosaic
 // ...
 ```
