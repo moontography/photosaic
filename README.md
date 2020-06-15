@@ -39,19 +39,19 @@ await fs.promises.writeFile(`./finalMosaic.png`, finalMosaicBuffer)
   - `subImages: PhotosaicImage[]`: The small, subImages that will be used to build the mosaic
   - `options?`: additional options you can provide to customize the output mosaic created
     - `options.gridNum?: number = 10`: The final mosaic will be made up of a `gridNum x gridNum` grid of subImages
-    - `options.intensity?: number = 0.5`: Number between 0-1 indicating the opacity of the subImages that are shaded to help make the output image clearer. 0 is fully transparent (main image will be impossible to see), 1 is fully opaque (subImages will be impossible to make out). The default of 0.5 should be good in most cases.
-    - `options.outputWidth?: number = 400`: Number of pixels the output mosaic will be. The larger the width, the bigger the mosaic and the larger in size the final mosaic will be. The larger the output the longer it takes to generate a mosaic
+    - `options.intensity?: number = 0.5`: Number between 0-1 indicating the opacity of the shading on the subImages to help make the output image clearer. 0 is fully transparent (subImages will be impossible to make out), 1 is fully opaque (main image will be impossible to see). The default of 0.5 should be fine in most cases.
+    - `options.outputWidth?: number = 400`: Number of pixels the output mosaic's width will be (height will auto scale). The larger the width, the bigger the mosaic and the larger in size the final mosaic will be. The larger the output the longer it takes to generate a mosaic
 
 ### Methods
 
 Assuming `const photosaic = Photosaic(source, subImgs, opts)`, the methods below are exposed on `photosaic`
 
+- `photosaic.build(): Promise<Buffer>`: create a mosaic and return the result in a raw Buffer
 - `photosaic.setSourceImage(newSrc: PhotosaicImage) => PhotosaicImage`: reset source image created in mosaic
 - `photosaic.setSubImages(subImgs: PhotosaicImage[]) => PhotosaicImage[]`: reset subImages used to build mosaic
 - `photosaic.addSubImage(img: PhotosaicImage): PhotosaicImage[]`: add an image to the subImage list to build mosaic
 - `photosaic.imgToStream(img: PhotosaicImage): Readable`: convert a PhotosaicImage to a Readable stream
 - `photosaic.imgToBuffer(img: PhotosaicImage): Promise<Buffer>`: convert a PhotosaicImage to a raw Buffer
-- `photosaic.build(): Promise<Buffer>`: create a mosaic and return the result in a raw Buffer
 
 ### Tracking Mosaic Progress
 
@@ -60,7 +60,7 @@ the hardware you're running to build the mosaic, it could take several to tens o
 for `photosaic.build()` to complete. Therefore, `photosaic` has an `EventEmitter`, `photosaic.emitter`
 you can listen for `processing` events to get the progress of the mosaic being built.
 
-There will be a total of `gridNum^2` total iterations processed.
+There will be a total of `gridNum^2` iterations processed.
 
 ```js
 const photosaic = Photosaic(source, subImgs, opts)
