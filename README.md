@@ -25,14 +25,14 @@ const newImgBuffer = await mosaic.build()
 await fs.promises.writeFile(`./finalMosaic.png`, newImgBuffer)
 ```
 
-Main Image Type
+### Main Image Type
 
 - `type PhotosaicImage = string | Buffer | Readable`: main abstraction of an "image" used by Photosaic
   - `string`: the full file path of the image on the local file system
   - `Buffer`: a raw buffer of an image
   - `Readable`: a [readable stream](https://nodejs.org/api/stream.html#stream_class_stream_readable) of an image to be piped to a writable stream
 
-Constructor
+### Constructor
 
 - `Photosaic(sourceImg, subImages, options?)`: factory function containing functionality to build mosaics
   - `sourceImg: PhotosaicImage`: The main image of the final mosaic that will be created
@@ -42,7 +42,7 @@ Constructor
     - `options.intensity?: number = 0.5`: Number between 0-1 indicating the opacity of the subImages that are shaded to help make the output image clearer. 0 is fully transparent (main image will be impossible to see), 1 is fully opaque (sub-images will be impossible to make out). The default of 0.5 should be good in most cases.
     - `options.outputWidth?: number = 400`: Number of pixels the output mosaic will be. The larger the width, the bigger the mosaic and the larger in size the final mosaic will be. The larger the output the longer it takes to generate a mosaic
 
-Methods
+### Methods
 
 Assuming `const photosaic = Photosaic(source, subImgs, opts)`, the methods below are exposed on `photosaic`
 
