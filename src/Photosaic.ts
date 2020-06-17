@@ -13,6 +13,7 @@ export default function Photosaic(
     gridNum = 10,
     intensity = 0.5,
     outputWidth = DEFAULT_WIDTH,
+    algo = 'random',
   }: IPhotosaicOptions = {}
 ): IPhotosaicFactory {
   return {
@@ -23,7 +24,8 @@ export default function Photosaic(
     sourceHeight: 0,
 
     subImages,
-    subImagesSharp: [sharp()],
+    subImagesList: [],
+    subImagesListCache: [],
     subImageWidth: 0,
     subImageHeight: 0,
 
@@ -84,13 +86,18 @@ export default function Photosaic(
       this.sourceWidth = this.subImageWidth * gridNum
       this.sourceHeight = this.subImageHeight * gridNum
 
-      return (this.subImagesSharp = await Promise.all(
+      return (this.subImagesList = await Promise.all(
         this.subImages.map(async (img: PhotosaicImage) => {
           const sh = sharp(await this.imgToBuffer(img))
-          return sh.resize({
+          const sharpImg = sh.resize({
             width: this.subImageWidth,
             height: this.subImageHeight,
           })
+
+          return {
+            img: sharpImg,
+            stats: await sharpImg.stats(),
+          }
         })
       ))
     },
@@ -117,13 +124,59 @@ export default function Photosaic(
       }
     },
 
+    getSubImage(pieceColor: IColor): sharp.Sharp {
+      switch (algo) {
+        case 'closestColor': {
+          const getDiff = (c1: number, c2: number): number => Math.abs(c1 - c2)
+          const getGrayscale = (r: number, g: number, b: number): number =>
+            0.3 * r + 0.59 * g + 0.11 * b
+          let selectedGrayscale: number = 0
+          const closestSubImage = this.subImagesListCache.reduce(
+            (curr: null | ISubImage, img: ISubImage) => {
+              const [r, g, b] = img.stats.channels
+              if (!curr) {
+                selectedGrayscale = getGrayscale(
+                  getDiff(pieceColor.r, r.mean),
+                  getDiff(pieceColor.g, g.mean),
+                  getDiff(pieceColor.b, b.mean)
+                )
+                return img
+              }
+
+              const imgGrayscale = getGrayscale(
+                getDiff(pieceColor.r, r.mean),
+                getDiff(pieceColor.g, g.mean),
+                getDiff(pieceColor.b, b.mean)
+              )
+              if (imgGrayscale < selectedGrayscale) {
+                selectedGrayscale = imgGrayscale
+                return img
+              }
+              return curr
+            },
+            null
+          )
+          return closestSubImage
+            ? closestSubImage.img.clone()
+            : this.sourceImageSharp.clone()
+        }
+        default: {
+          // 'random'
+          const randImgInd = Math.floor(
+            this.subImagesListCache.length * Math.random()
+          )
+          return this.subImagesListCache.splice(randImgInd, 1)[0].img.clone()
+        }
+      }
+    },
+
     async build() {
       await this.setupSourceImage()
       await this.setupSubImages()
 
       let compositeSubImgObjects: object[] = []
       let iteration = 0
-      let subImagesCache = this.subImagesSharp.slice(0)
+      this.subImagesListCache = this.subImagesList.slice(0)
 
       // we're going to execute each column in series, but all rows
       // in each column in parallel to try and improve speed
@@ -133,17 +186,16 @@ export default function Photosaic(
             iteration++
             this.emitter.emit(`processing`, iteration)
 
-            const { r, g, b, a } = await this.getPieceAvgColor(x, y)
+            const pieceColor: IColor = await this.getPieceAvgColor(x, y)
+            const { r, g, b, a } = pieceColor
             // If the square is completely transparent, don't insert image here.
             // TODO: should we have same logic here for all white or black squares?
             if ((a || 0) < 10) return
 
-            if (subImagesCache.length === 0)
-              subImagesCache = this.subImagesSharp.slice(0)
+            if (this.subImagesListCache.length === 0)
+              this.subImagesListCache = this.subImagesList.slice(0)
 
-            const randImgInd = Math.floor(subImagesCache.length * Math.random())
-            const subImg = subImagesCache.splice(randImgInd, 1)[0].clone()
-
+            const subImg = this.getSubImage(pieceColor)
             const overlayedSubImg = subImg.composite([
               {
                 input: {
@@ -202,6 +254,11 @@ export interface IColor {
   a: number
 }
 
+export interface ISubImage {
+  img: sharp.Sharp
+  stats: sharp.Stats
+}
+
 export interface IPhotosaicFactory {
   emitter: EventEmitter
   sourceImage: PhotosaicImage
@@ -209,7 +266,8 @@ export interface IPhotosaicFactory {
   sourceWidth: number
   sourceHeight: number
   subImages: PhotosaicImage[]
-  subImagesSharp: sharp.Sharp[]
+  subImagesList: ISubImage[]
+  subImagesListCache: ISubImage[]
   subImageWidth: number
   subImageHeight: number
   setSourceImage(source: PhotosaicImage): PhotosaicImage
@@ -218,8 +276,9 @@ export interface IPhotosaicFactory {
   imgToStream(img: PhotosaicImage): Readable
   imgToBuffer(img: PhotosaicImage): Promise<Buffer>
   setupSourceImage(): Promise<sharp.Sharp>
-  setupSubImages(): Promise<sharp.Sharp[]>
+  setupSubImages(): Promise<ISubImage[]>
   getPieceAvgColor(x: number, y: number): Promise<IColor>
+  getSubImage(pieceColor: IColor): sharp.Sharp
   build(): Promise<Buffer>
 }
 
@@ -227,4 +286,5 @@ export interface IPhotosaicOptions {
   gridNum?: number // number of columns and rows of subimages we'll use to build the mosaic
   intensity?: number // number between 0-1, the intesity that we'll overlay a color on subimages to insert into main image
   outputWidth?: null | number // width in pixels of the output image (DEFAULT: original width)
+  algo?: 'random' | 'closestColor' // how the sub images will be dispersed to build the mosaic
 }
