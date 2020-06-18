@@ -2,7 +2,7 @@
 
 Create beautiful mosaics of an image from an original you specify, and are made up of many small images/photos you also provide!
 
-<img src="https://user-images.githubusercontent.com/13718950/84646338-f0d25180-aecf-11ea-9926-b42cbfe251d9.png" width="600">
+<img src="https://user-images.githubusercontent.com/13718950/84967404-de2f6680-b0e1-11ea-9d7b-8f4ab9b2f48a.png" width="600">
 
 ## Install
 
@@ -41,9 +41,19 @@ await fs.promises.writeFile(`./finalMosaic.png`, finalMosaicBuffer)
     - `options.gridNum?: number = 10`: The final mosaic will be made up of a `gridNum x gridNum` grid of subImages
     - `options.intensity?: number = 0.5`: Number between 0-1 indicating the opacity of the shading on the subImages to help make the output image clearer. 0 is fully transparent shading (main image will be impossible to see), 1 is fully opaque (subImages will be impossible to make out). The default of 0.5 should be fine in most cases.
     - `options.outputWidth?: number = 400`: Number of pixels the output mosaic's width will be (height will auto scale). The larger the width, the bigger the mosaic and the larger in size the final mosaic will be. The larger the output the longer it takes to generate a mosaic
-    - `options.algo?: 'closestColor' | 'random' = 'random'`: How the subImages will be dispersed throughout when building the mosaic.
+    - `options.algo?: 'closestColor' | 'random' = 'closestColor'`: How the subImages will be dispersed throughout when building the mosaic.
       - `'random'` selects one of the subImages randomly each iteration to be inserted in that slice of the mosaic
       - `'closestColor'` selects the subImage that is closest to the average color of the slice of the main image that the subImage is getting inserted to build the mosaic.
+
+#### `options.algo` differences
+
+##### 'closestColor'
+
+<img src="https://user-images.githubusercontent.com/13718950/84967404-de2f6680-b0e1-11ea-9d7b-8f4ab9b2f48a.png" width="600">
+
+##### 'random'
+
+<img src="https://user-images.githubusercontent.com/13718950/84646338-f0d25180-aecf-11ea-9926-b42cbfe251d9.png" width="600">
 
 ### Methods
 

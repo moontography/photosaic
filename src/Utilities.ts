@@ -10,10 +10,10 @@ export function bufferToStream(buf: Buffer): Readable {
 
 export async function streamToBuffer(str: Readable): Promise<Buffer> {
   return await new Promise((resolve, reject) => {
-    let data = ''
+    let data: any[] = []
     str
       .on('error', reject)
-      .on('data', (chunk) => (data += chunk))
-      .on('end', () => resolve(Buffer.from(data, 'binary')))
+      .on('data', (chunk) => data.push(chunk))
+      .on('end', () => resolve(Buffer.concat(data)))
   })
 }

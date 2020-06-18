@@ -13,7 +13,7 @@ export default function Photosaic(
     gridNum = 10,
     intensity = 0.5,
     outputWidth = DEFAULT_WIDTH,
-    algo = 'random',
+    algo = 'closestColor',
   }: IPhotosaicOptions = {}
 ): IPhotosaicFactory {
   return {
@@ -60,6 +60,7 @@ export default function Photosaic(
       const { width } = await this.sourceImageSharp.metadata()
       this.sourceImageSharp = sharp(
         await this.sourceImageSharp
+          .rotate()
           .resize({
             width: outputWidth || width || DEFAULT_WIDTH,
           })
@@ -89,7 +90,7 @@ export default function Photosaic(
       return (this.subImagesList = await Promise.all(
         this.subImages.map(async (img: PhotosaicImage) => {
           const sh = sharp(await this.imgToBuffer(img))
-          const sharpImg = sh.resize({
+          const sharpImg = sh.rotate().resize({
             width: this.subImageWidth,
             height: this.subImageHeight,
           })

@@ -50,7 +50,12 @@ describe('Photosaic', function () {
   })
 
   describe('#imgToBuffer', function () {
-    // TODO
+    it('should convert the img to a raw image buffer', async function () {
+      const readable = photosaic.imgToStream(testImgPath)
+      const buffer1 = await photosaic.imgToBuffer(readable)
+      const buffer2 = await photosaic.imgToBuffer(testImgPath)
+      assert.equal(sha256(buffer1), sha256(buffer2))
+    })
   })
 
   describe('#build', function () {
