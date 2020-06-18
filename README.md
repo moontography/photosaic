@@ -45,13 +45,13 @@ await fs.promises.writeFile(`./finalMosaic.png`, finalMosaicBuffer)
       - `'random'` selects one of the subImages randomly each iteration to be inserted in that slice of the mosaic
       - `'closestColor'` selects the subImage that is closest to the average color of the slice of the main image that the subImage is getting inserted to build the mosaic.
 
-#### `options.algo` differences
+### `options.algo` differences
 
-##### 'closestColor'
+#### closestColor'
 
 <img src="https://user-images.githubusercontent.com/13718950/85006769-8f58ef80-b128-11ea-8440-2a9c2965cbd7.png" width="600">
 
-##### 'random'
+#### random'
 
 <img src="https://user-images.githubusercontent.com/13718950/84646338-f0d25180-aecf-11ea-9926-b42cbfe251d9.png" width="600">
 
@@ -73,7 +73,7 @@ the hardware you're running to build the mosaic, it could take several to tens o
 for `photosaic.build()` to complete. Therefore, `photosaic` has an `EventEmitter`, `photosaic.emitter`
 you can listen for `processing` events to get the progress of the mosaic being built.
 
-There will be a total of `gridNum^2` iterations processed.
+There will be a total of `2 * gridNum^2` iterations processed.
 
 ```js
 const photosaic = Photosaic(source, subImgs, opts)

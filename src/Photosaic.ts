@@ -89,11 +89,16 @@ export default function Photosaic(
 
       return (this.subImagesList = await Promise.all(
         this.subImages.map(async (img: PhotosaicImage) => {
-          const sh = sharp(await this.imgToBuffer(img))
-          const sharpImg = sh.rotate().resize({
-            width: this.subImageWidth,
-            height: this.subImageHeight,
-          })
+          const s1 = sharp(await this.imgToBuffer(img))
+          const sharpImg = sharp(
+            await s1
+              .rotate()
+              .resize({
+                width: this.subImageWidth,
+                height: this.subImageHeight,
+              })
+              .toBuffer()
+          )
 
           return {
             img: sharpImg,
@@ -103,14 +108,22 @@ export default function Photosaic(
       ))
     },
 
-    async getPieceAvgColor(x: number, y: number) {
-      const piece = await this.sourceImageSharp
+    async getPieceAvgColor(
+      x: number,
+      y: number,
+      source?: sharp.Sharp,
+      subImgWidth?: number,
+      subImgHeight?: number
+    ) {
+      const w = subImgWidth || this.subImageWidth
+      const h = subImgHeight || this.subImageHeight
+      const piece = await (source || this.sourceImageSharp)
         .clone()
         .extract({
-          left: x * this.subImageWidth,
-          top: y * this.subImageHeight,
-          width: this.subImageWidth,
-          height: this.subImageHeight,
+          left: x * w,
+          top: y * h,
+          width: w,
+          height: h,
         })
         .toBuffer()
       const {
@@ -171,23 +184,57 @@ export default function Photosaic(
       }
     },
 
+    async getSourceImgAvgColors(): Promise<IColor[][]> {
+      let gridColors: IColor[][] = []
+      let iteration = 0
+      const smallSource = sharp(
+        await this.sourceImageSharp
+          .clone()
+          .resize({ width: DEFAULT_WIDTH })
+          .toBuffer()
+      )
+      const smallSourceMeta = await smallSource.metadata()
+      const subWidth = Math.floor(DEFAULT_WIDTH / gridNum)
+      const subHeight = Math.floor(
+        (smallSourceMeta.height || DEFAULT_WIDTH) / gridNum
+      )
+      for (let x = 0; x < gridNum; x++) {
+        await Promise.all(
+          new Array(gridNum).fill(0).map(async (_, y) => {
+            iteration++
+            this.emitter.emit(`processing`, iteration)
+            gridColors[x] = gridColors[x] || []
+            gridColors[x][y] = await this.getPieceAvgColor(
+              x,
+              y,
+              smallSource,
+              subWidth,
+              subHeight
+            )
+          })
+        )
+      }
+      return gridColors
+    },
+
     async build() {
       await this.setupSourceImage()
       await this.setupSubImages()
+      const avgMainImgColors: IColor[][] = await this.getSourceImgAvgColors()
 
       let compositeSubImgObjects: object[] = []
       let iteration = 0
       this.subImagesListCache = this.subImagesList.slice(0)
 
-      // we're going to execute each column in series, but all rows
-      // in each column in parallel to try and improve speed
-      for (let y = 0; y < gridNum; y++) {
+      // we're going to execute each row in series, but all cols
+      // in each row in parallel to try and improve speed
+      for (let x = 0; x < gridNum; x++) {
         await Promise.all(
-          new Array(gridNum).fill(0).map(async (_, x) => {
+          new Array(gridNum).fill(0).map(async (_, y) => {
             iteration++
             this.emitter.emit(`processing`, iteration)
 
-            const pieceColor: IColor = await this.getPieceAvgColor(x, y)
+            const pieceColor = avgMainImgColors[x][y]
             const { r, g, b, a } = pieceColor
             // If the square is completely transparent, don't insert image here.
             // TODO: should we have same logic here for all white or black squares?
@@ -217,23 +264,23 @@ export default function Photosaic(
             })
           })
         )
-
-        // TODO: when the following are resolved remove this
-        // https://github.com/lovell/sharp/issues/1708
-        // https://github.com/lovell/sharp/issues/1626
-        if (compositeSubImgObjects.length >= 80) {
-          this.sourceImageSharp = sharp(
-            await this.sourceImageSharp
-              .composite(compositeSubImgObjects)
-              .toBuffer()
-          )
-          compositeSubImgObjects = []
-        }
       }
 
-      const buffer = await this.sourceImageSharp
-        .composite(compositeSubImgObjects)
-        .toBuffer()
+      // TODO: when the following are resolved remove this and only use
+      // `.composite` once with all small images
+      //
+      // https://github.com/lovell/sharp/issues/1708
+      // https://github.com/lovell/sharp/issues/1626
+      while (compositeSubImgObjects.length > 0) {
+        iteration++
+        this.emitter.emit(`processing`, iteration)
+        const compositeImages = compositeSubImgObjects.splice(0, gridNum)
+        this.sourceImageSharp = sharp(
+          await this.sourceImageSharp.composite(compositeImages).toBuffer()
+        )
+      }
+
+      const buffer = await this.sourceImageSharp.toBuffer()
       this.emitter.emit(`complete`, buffer)
       return buffer
     },
@@ -278,8 +325,15 @@ export interface IPhotosaicFactory {
   imgToBuffer(img: PhotosaicImage): Promise<Buffer>
   setupSourceImage(): Promise<sharp.Sharp>
   setupSubImages(): Promise<ISubImage[]>
-  getPieceAvgColor(x: number, y: number): Promise<IColor>
+  getPieceAvgColor(
+    x: number,
+    y: number,
+    source?: sharp.Sharp,
+    subWidth?: number,
+    subHeight?: number
+  ): Promise<IColor>
   getSubImage(pieceColor: IColor): sharp.Sharp
+  getSourceImgAvgColors(): Promise<IColor[][]>
   build(): Promise<Buffer>
 }
 
