@@ -2,7 +2,7 @@
 
 Create beautiful mosaics of an image from an original you specify, and are made up of many small images/photos you also provide!
 
-<img src="https://user-images.githubusercontent.com/13718950/84967404-de2f6680-b0e1-11ea-9d7b-8f4ab9b2f48a.png" width="600">
+<img src="https://user-images.githubusercontent.com/13718950/85006769-8f58ef80-b128-11ea-8440-2a9c2965cbd7.png" width="600">
 
 ## Install
 
@@ -49,7 +49,7 @@ await fs.promises.writeFile(`./finalMosaic.png`, finalMosaicBuffer)
 
 ##### 'closestColor'
 
-<img src="https://user-images.githubusercontent.com/13718950/84967404-de2f6680-b0e1-11ea-9d7b-8f4ab9b2f48a.png" width="600">
+<img src="https://user-images.githubusercontent.com/13718950/85006769-8f58ef80-b128-11ea-8440-2a9c2965cbd7.png" width="600">
 
 ##### 'random'
 
