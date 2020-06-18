@@ -219,8 +219,10 @@ export default function Photosaic(
 
     async build() {
       await this.setupSourceImage()
-      await this.setupSubImages()
-      const avgMainImgColors: IColor[][] = await this.getSourceImgAvgColors()
+      const [avgMainImgColors] = await Promise.all([
+        this.getSourceImgAvgColors(),
+        this.setupSubImages(),
+      ])
 
       let compositeSubImgObjects: object[] = []
       let iteration = 0

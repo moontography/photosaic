@@ -47,11 +47,11 @@ await fs.promises.writeFile(`./finalMosaic.png`, finalMosaicBuffer)
 
 ### `options.algo` differences
 
-#### closestColor'
+#### closestColor
 
 <img src="https://user-images.githubusercontent.com/13718950/85006769-8f58ef80-b128-11ea-8440-2a9c2965cbd7.png" width="600">
 
-#### random'
+#### random
 
 <img src="https://user-images.githubusercontent.com/13718950/84646338-f0d25180-aecf-11ea-9926-b42cbfe251d9.png" width="600">
 
