@@ -134,7 +134,7 @@ export default function Photosaic(
         r: r.mean,
         g: g.mean,
         b: b.mean,
-        a: a.mean,
+        a: (a || { mean: 100 }).mean,
       }
     },
 
