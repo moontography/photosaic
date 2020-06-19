@@ -75,8 +75,8 @@ describe('Photosaic', function () {
 
         await Promise.all([p1.build(), p2.build()])
 
-        assert.equal(4, i1)
-        assert.equal(25, i2)
+        assert.equal(true, i1 >= 4 * 2)
+        assert.equal(true, i2 >= 25 * 2)
       })
     })
   })

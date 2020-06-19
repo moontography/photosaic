@@ -187,7 +187,7 @@ export default function Photosaic(
     async getSourceImgAvgColors(): Promise<IColor[][]> {
       let gridColors: IColor[][] = []
       let iteration = 0
-      const smallSource = sharp(
+      let smallSource = sharp(
         await this.sourceImageSharp
           .clone()
           .resize({ width: DEFAULT_WIDTH })
@@ -198,6 +198,16 @@ export default function Photosaic(
       const subHeight = Math.floor(
         (smallSourceMeta.height || DEFAULT_WIDTH) / gridNum
       )
+
+      // resetting after setting subImages so the width is exactly
+      // subWidth * gridNum
+      smallSource = sharp(
+        await smallSource
+          .clone()
+          .resize({ width: subWidth * gridNum })
+          .toBuffer()
+      )
+
       for (let x = 0; x < gridNum; x++) {
         await Promise.all(
           new Array(gridNum).fill(0).map(async (_, y) => {
