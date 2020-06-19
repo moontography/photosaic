@@ -1,6 +1,6 @@
 {
   "name": "photosaic",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "license": "MIT",
   "description": "Build beautiful mosaic images from input images and photos you provide.",
   "main": "dist/Photosaic.js",
