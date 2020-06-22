@@ -4,6 +4,10 @@
   "license": "MIT",
   "description": "Build beautiful mosaic images from input images and photos you provide.",
   "main": "dist/Photosaic.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/whatl3y/photosaic"
+  },
   "scripts": {
     "build": "gulp build",
     "postinstall": "npm run build",

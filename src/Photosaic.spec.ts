@@ -1,9 +1,14 @@
 import assert from 'assert'
 import crypto from 'crypto'
 import path from 'path'
+import sharp from 'sharp'
 import { Readable } from 'stream'
 import { streamToBuffer } from './Utilities'
-import Photosaic from './Photosaic'
+import Photosaic, {
+  ISubImage,
+  binarySubImageSearch,
+  getGrayscale,
+} from './Photosaic'
 
 describe('Photosaic', function () {
   const testImgPath = path.join(__dirname, '..', 'tests', 'test.png')
@@ -78,6 +83,52 @@ describe('Photosaic', function () {
         assert.equal(true, i1 >= 4 * 2)
         assert.equal(true, i2 >= 25 * 2)
       })
+    })
+  })
+
+  describe('binarySubImageSearch', function () {
+    it('should get the correct image based on grayscale values', async function () {
+      // this.timeout(10000)
+      const getISubImage = (rgb: number) => {
+        const shImg = sharp()
+        const shStats: sharp.Stats = {
+          channels: [],
+          isOpaque: true,
+          entropy: 1,
+        }
+        let si: ISubImage = { img: shImg, stats: shStats }
+        si.stats.channels[0] = si.stats.channels[0] || {}
+        si.stats.channels[0].mean = rgb
+        si.stats.channels[1] = si.stats.channels[1] || {}
+        si.stats.channels[1].mean = rgb
+        si.stats.channels[2] = si.stats.channels[2] || {}
+        si.stats.channels[2].mean = rgb
+        return si
+      }
+      const imgs = [
+        getISubImage(0),
+        getISubImage(1),
+        getISubImage(10),
+        getISubImage(255),
+      ]
+
+      const [r1, g1, b1] = [5, 5, 5] // 1
+      const gr1 = getGrayscale(r1, g1, b1)
+      const result1 = binarySubImageSearch(imgs, gr1, 0, imgs.length - 1)
+
+      const [r2, g2, b2] = [210, 220, 240] // 255
+      const gr2 = getGrayscale(r2, g2, b2)
+      const result2 = binarySubImageSearch(imgs, gr2, 0, imgs.length - 1)
+
+      assert.equal(
+        imgs[1].stats.channels[0].mean,
+        result1.stats.channels[0].mean
+      )
+
+      assert.equal(
+        imgs[3].stats.channels[0].mean,
+        result2.stats.channels[0].mean
+      )
     })
   })
 })

@@ -40,6 +40,7 @@ await fs.promises.writeFile(`./finalMosaic.png`, finalMosaicBuffer)
   - `options?`: additional options you can provide to customize the output mosaic created
     - `options.gridNum?: number = 10`: The final mosaic will be made up of a `gridNum x gridNum` grid of subImages
     - `options.intensity?: number = 0.5`: Number between 0-1 indicating the opacity of the shading on the subImages to help make the output image clearer. 0 is fully transparent shading (main image will be impossible to see), 1 is fully opaque (subImages will be impossible to make out). The default of 0.5 should be fine in most cases.
+    - `options.outputType?: string = 'png'`: The output type of the final mosaic. To preserve transparency in the image, use the default, 'png'.
     - `options.outputWidth?: number = 400`: Number of pixels the output mosaic's width will be (height will auto scale). The larger the width, the bigger the mosaic and the larger in size the final mosaic will be. The larger the output the longer it takes to generate a mosaic
     - `options.algo?: 'closestColor' | 'random' = 'closestColor'`: How the subImages will be dispersed throughout when building the mosaic.
       - `'random'` selects one of the subImages randomly each iteration to be inserted in that slice of the mosaic
@@ -86,4 +87,13 @@ await photosaic.build()
 // Currently processing '2' subImage for the mosaic
 // Currently processing '3' subImage for the mosaic
 // ...
+```
+
+### CLI Task
+
+You can use the following task to create a mosaic via the CLI with files on your local file system.
+
+```sh
+$ npm install -s photosaic
+$ node ./node_modules/photosaic/dist/tasks/createMosaic.js -i ./pathToMosaicFile.js --dir ./path/to/sub/images -g 40 -w 1000
 ```
