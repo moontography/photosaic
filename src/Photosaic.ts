@@ -21,6 +21,7 @@ export default function Photosaic(
     emitter: new EventEmitter(),
     sourceImage,
     sourceImageSharp: sharp(),
+    destinationImageSharp: sharp(),
     sourceWidth: 0,
     sourceHeight: 0,
 
@@ -71,6 +72,16 @@ export default function Photosaic(
       const newDims = await this.sourceImageSharp.metadata()
       this.sourceWidth = newDims.width || DEFAULT_WIDTH
       this.sourceHeight = newDims.height || DEFAULT_WIDTH
+
+      this.destinationImageSharp = sharp({
+        create: {
+          width: this.sourceWidth,
+          height: this.sourceHeight,
+          channels: 4,
+          background: { r: 255, g: 255, b: 255, alpha: 0 },
+        },
+      }).png()
+
       return this.sourceImageSharp
     },
 
@@ -272,12 +283,14 @@ export default function Photosaic(
         iteration++
         this.emitter.emit(`processing`, iteration)
         const compositeImages = compositeSubImgObjects.splice(0, gridNum)
-        this.sourceImageSharp = sharp(
-          await this.sourceImageSharp.composite(compositeImages).toBuffer()
+        this.destinationImageSharp = sharp(
+          await this.destinationImageSharp.composite(compositeImages).toBuffer()
         )
       }
 
-      const buffer = await this.sourceImageSharp.toFormat(outputType).toBuffer()
+      const buffer = await this.destinationImageSharp
+        .toFormat(outputType)
+        .toBuffer()
       this.emitter.emit(`complete`, buffer)
       return buffer
     },
@@ -349,6 +362,7 @@ export interface IPhotosaicFactory {
   emitter: EventEmitter
   sourceImage: PhotosaicImage
   sourceImageSharp: sharp.Sharp
+  destinationImageSharp: sharp.Sharp
   sourceWidth: number
   sourceHeight: number
   subImages: PhotosaicImage[]
