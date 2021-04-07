@@ -95,5 +95,13 @@ You can use the following task to create a mosaic via the CLI with files on your
 
 ```sh
 $ npm install -s photosaic
-$ node ./node_modules/photosaic/dist/tasks/createMosaic.js -i ./pathToMosaicFile.js --dir ./path/to/sub/images -g 40 -w 1000
+$ node ./node_modules/photosaic/dist/tasks/createMosaic.js -i ./pathToMosaicFile.png --dir ./path/to/sub/images -g 40 -w 1000
 ```
+There are several options for the CLI which correspond to the constructor options:
+ - input:`-i | --input` The image of the final mosaic that will be created.
+ - single sub image: `-s | --sub` Path of a single sub image.
+ - sub image directory: `--dir` The small, sub images that will be used to build the mosaic.
+ - grid number: `-g | --grid` The final mosaic will be made up of a `gridNum x gridNum` grid of subImages.
+ - intensity: `--intensity` Number between 0-1 indicating the opacity of the shading on the subImages to help make the output image clearer. 0 is fully transparent shading (main image will be impossible to see), 1 is fully opaque (subImages will be impossible to make out). The default of 0.5 should be fine in most cases.
+ - output width: `-w | --width` Number of pixels the output mosaic's width will be (height will auto scale).
+ - algorithm to use: `-a | --algo` Choose between `closestColor` (default) and `random`. See examples above.
